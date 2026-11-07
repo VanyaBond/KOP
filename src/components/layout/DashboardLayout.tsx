@@ -1,7 +1,19 @@
 import type { ReactNode } from 'react';
-import type { Theme } from '@/types/dashboard';
+import type { Theme } from '@/types/pokemon';
 
-export const DashboardLayout = ({ theme, sidebar, header, children }: { theme: Theme; sidebar: ReactNode; header: ReactNode; children: ReactNode }) => (
+interface DashboardLayoutProps {
+  theme: Theme;
+  sidebar: ReactNode;
+  header: ReactNode;
+  children: ReactNode;
+}
+
+export const DashboardLayout = ({ 
+  theme, 
+  sidebar, 
+  header, 
+  children 
+}: DashboardLayoutProps) => (
   <div className="app-shell" data-theme={theme}>
     {sidebar}
     <div className="app-shell__main">

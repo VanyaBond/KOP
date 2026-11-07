@@ -1,5 +1,5 @@
 import { DeltaBadge } from '@/components/ui/DeltaBadge';
-import type { KpiData } from '@/types/dashboard';
+import type { KpiData } from '@/types/pokemon';
 
 interface KpiCardProps {
   kpi: KpiData;
