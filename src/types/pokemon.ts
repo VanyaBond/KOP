@@ -10,7 +10,20 @@ export interface PokemonDto {
   abilities: { ability: { name: string; url: string }; is_hidden: boolean; slot: number }[];
   stats: { base_stat: number; stat: { name: string; url: string } }[];
   types: { slot: number; type: { name: string; url: string } }[];
-  sprites: { front_default: string | null; front_shiny: string | null };
+  sprites: { 
+    front_default: string | null; 
+    front_shiny: string | null;
+    back_default?: string | null;
+    back_shiny?: string | null;
+    other?: {
+      'official-artwork'?: {
+        front_default?: string | null;
+      };
+    };
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  moves: { move: { name: string; url: string }; version_group_details: any[] }[];
+  species: { name: string; url: string };
 }
 
 export interface PokemonSummary {
@@ -20,13 +33,22 @@ export interface PokemonSummary {
   weightKg: number;
   baseExperience: number;
   types: string[];
-  abilities: string[];
+  abilities: { name: string; isHidden: boolean }[];
   hp: number;
   attack: number;
   defense: number;
+  specialAttack: number;
+  specialDefense: number;
   speed: number;
   totalStats: number;
   sprite: string | null;
+  spriteBack: string | null;
+  artwork: string | null;
+}
+
+export interface PokemonDetailSummary extends PokemonSummary {
+  moves: string[];
+  speciesName: string;
 }
 
 export interface KpiData {
@@ -52,3 +74,8 @@ export interface PokemonFilters {
   pageSize: number;
 }
 
+export interface PokemonDetailsResult {
+  pokemon: PokemonDetailSummary | null;
+  loading: boolean;
+  error: string | null;
+}

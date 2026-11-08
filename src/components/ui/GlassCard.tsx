@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 interface GlassCardProps {
-  title: string;
+  title: string | ReactNode;
   subtitle?: string;
   actions?: ReactNode;
   children: ReactNode;

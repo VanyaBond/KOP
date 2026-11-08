@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { SORT_FIELDS, TYPE_COLORS, SORT_DIRECTIONS, DEFAULT_SORT } from '@/consts/pokemonConsts';
-import type { PokemonSummary, SortField, SortConfig } from '@/types/pokemon';
+import { useNavigate } from 'react-router-dom';
+import { SORT_FIELDS, TYPE_COLORS, SORT_DIRECTIONS, DEFAULT_SORT, ROUTES } from '@/consts';
+import type { PokemonSummary, SortField, SortConfig } from '@/types';
 import { getCellValue } from '@/lib/get-cell-value';
 
 interface PokemonTableProps {
@@ -42,6 +43,7 @@ const SortIndicator = ({ field, current }: SortIndicatorProps) => {
 
 export const PokemonTable = ({ pokemons }: PokemonTableProps) => {
   const [sort, setSort] = useState<SortConfig>(DEFAULT_SORT);
+  const navigate = useNavigate();
 
   const toggle = (field: SortField) => {
     setSort((prev) =>
@@ -64,6 +66,10 @@ export const PokemonTable = ({ pokemons }: PokemonTableProps) => {
     () => sortPokemon(pokemons, sort),
     [pokemons, sort]
   );
+
+  const handleRowClick = (id: number) => {
+    navigate(ROUTES.POKEMON_DETAILS_BY_ID(id));
+  };
 
   if (pokemons.length === 0) {
     return (
@@ -112,7 +118,20 @@ export const PokemonTable = ({ pokemons }: PokemonTableProps) => {
         </thead>
         <tbody>
           {sortedPokemons.map((pokemon) => (
-            <tr key={pokemon.id}>
+            <tr 
+              key={pokemon.id}
+              className="pokemon-row"
+              onClick={() => handleRowClick(pokemon.id)}
+              style={{ cursor: 'pointer' }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleRowClick(pokemon.id);
+                }
+              }}
+            >
               <td className="col-sprite">
                 {pokemon.sprite ? (
                   <img
