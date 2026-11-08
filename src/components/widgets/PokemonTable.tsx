@@ -7,7 +7,6 @@ interface PokemonTableProps {
   pokemons: readonly PokemonSummary[];
 }
 
-
 const sortPokemon = (source: readonly PokemonSummary[], { field, direction }: SortConfig): PokemonSummary[] => {
   const copy = [...source];
   const sign = direction === SORT_DIRECTIONS.ASC ? 1 : -1;
@@ -65,6 +64,18 @@ export const PokemonTable = ({ pokemons }: PokemonTableProps) => {
     () => sortPokemon(pokemons, sort),
     [pokemons, sort]
   );
+
+  if (pokemons.length === 0) {
+    return (
+      <div className="table-empty">
+        <div className="table-empty__icon">🔍</div>
+        <h3 className="table-empty__title">No Pokémon found</h3>
+        <p className="table-empty__message">
+          Try adjusting your filters or search query
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="table-wrap">

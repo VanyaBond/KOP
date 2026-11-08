@@ -43,3 +43,12 @@ export interface SortConfig {
   direction: SortDirection;
 }
 
+export interface PokemonFilters {
+  query: string;
+  type: string;
+  minHp: number;
+  limit: number;
+  page: number;
+  pageSize: number;
+}
+

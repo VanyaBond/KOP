@@ -1,7 +1,12 @@
-import { API_BASE_URL, POKEMON_LIMIT } from '@/consts/pokemonConsts';
-import type { PokemonDto } from '@/types/pokemon';
+import { API_BASE_URL } from '@/consts/pokemonConsts';
+import type { PokemonDto, PokemonFilters } from '@/types/pokemon';
 
-export async function fetchPokemonList(limit: number = POKEMON_LIMIT, signal?: AbortSignal): Promise<PokemonDto[]> {
+export async function fetchPokemonList(
+  filters: PokemonFilters,
+  signal?: AbortSignal
+): Promise<PokemonDto[]> {
+  const { query, type, minHp, limit } = filters;
+  
   const url = `${API_BASE_URL}/pokemon?limit=${limit}`;
   
   const response = await fetch(url, { signal });
@@ -16,7 +21,26 @@ export async function fetchPokemonList(limit: number = POKEMON_LIMIT, signal?: A
     fetch(pokemon.url, { signal }).then(res => res.json())
   );
   
-  return await Promise.all(detailsPromises);
+  const allPokemons = await Promise.all(detailsPromises);
+  //clien filtering because api not support it (
+  return allPokemons.filter((p: PokemonDto) => {
+    if (query && !p.name.toLowerCase().includes(query.toLowerCase())) {
+      return false;
+    }
+
+    if (type !== 'all' && !p.types.some(t => t.type.name === type)) {
+      return false;
+    }
+
+    if (minHp > 0) {
+      const hpStat = p.stats.find(s => s.stat.name === 'hp');
+      if (!hpStat || hpStat.base_stat < minHp) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 }
 
 export async function fetchPokemonById(id: number, signal?: AbortSignal): Promise<PokemonDto> {
