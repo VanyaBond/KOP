@@ -22,20 +22,21 @@ function App() {
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
   const toggleTheme = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  const retry = () => refetch();
 
   const { status, data: pokemons, error, refetch } = usePokemonData(151);
+  const retry = () => refetch();
+
+  const [team1Count, setTeam1Count] = useState<number>(DEFAULT_COUNTER_VALUE);
+  const [team2Count, setTeam2Count] = useState<number>(DEFAULT_COUNTER_VALUE);
 
   const kpis = useMemo(() => buildKpis(pokemons), [pokemons]);
+  const halfIndex = useMemo(() => Math.ceil(pokemons.length / 2), [pokemons]);
 
-  const team1Pokemon = useMemo(() => 
-    pokemons.slice(0, Math.ceil(pokemons.length / 2)), 
-    [pokemons]
-  );
-  const team2Pokemon = useMemo(() => 
-    pokemons.slice(Math.ceil(pokemons.length / 2)), 
-    [pokemons]
-  );
+  const team1Pool = useMemo(() => pokemons.slice(0, halfIndex), [pokemons, halfIndex]);
+  const team2Pool = useMemo(() => {
+    const takenIds = new Set(team1Pool.slice(0, team1Count).map(p => p.id));
+    return pokemons.slice(halfIndex).filter(p => !takenIds.has(p.id));
+  }, [pokemons, halfIndex, team1Pool, team1Count]);
 
   const renderContent = () => {
     if (status === 'idle' || status === 'loading') {
@@ -122,6 +123,7 @@ function App() {
                   initial={DEFAULT_COUNTER_VALUE}
                   min={1}
                   max={6}
+                  onChange={setTeam1Count}
                 >
                   {(value) => (
                     <p style={{ 
@@ -136,7 +138,8 @@ function App() {
                 </Counter>
                 
                 <FilteredPokemonList 
-                  items={team1Pokemon} 
+                  items={team1Pool} 
+                  limit={team1Count}
                   title="Team 1 Roster"
                   colorScheme="yellow"
                 />
@@ -160,6 +163,7 @@ function App() {
                   initial={DEFAULT_COUNTER_VALUE}
                   min={1}
                   max={6}
+                  onChange={setTeam2Count}
                 >
                   {(value) => (
                     <p style={{ 
@@ -174,7 +178,8 @@ function App() {
                 </Counter>
                 
                 <FilteredPokemonList 
-                  items={team2Pokemon} 
+                  items={team2Pool} 
+                  limit={team2Count}
                   title="Team 2 Roster"
                   colorScheme="blue"
                 />
@@ -185,7 +190,7 @@ function App() {
 
         {/* Pokemon Table */}
         <section className="grid-table">
-          <GlassCard title="📊 Pokémon Directory" subtitle="Sortable data table with real PokéAPI data">
+          <GlassCard title="💖 Pokémon Directory" subtitle="Sortable data table with real PokéAPI data">
             <PokemonTable pokemons={pokemons} />
           </GlassCard>
         </section>
@@ -196,13 +201,13 @@ function App() {
   return (
     <DashboardLayout
       theme={theme}
-      sidebar={<Sidebar isOpen={isSidebarOpen}  />}
+      sidebar={<Sidebar isOpen={isSidebarOpen} />}
       header={
         <Header 
           title="⚡ Pokémon Battle Arena"
           subtitle="Choose your fighters and battle!"
         >
-           <button 
+          <button 
             className="sidebar-toggle-btn" 
             onClick={toggleSidebar}
             aria-label={isSidebarOpen ? "Згорнути меню" : "Розгорнути меню"}
@@ -214,7 +219,8 @@ function App() {
         </Header>
       }
     >
-      {renderContent()}</DashboardLayout>
+      {renderContent()}
+    </DashboardLayout>
   );
 }
 

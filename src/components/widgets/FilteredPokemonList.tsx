@@ -9,9 +9,10 @@ interface FilteredPokemonListProps {
   items: PokemonSummary[];
   title?: string;
   colorScheme?: 'yellow' | 'blue';
+  limit?: number;
 }
 
-export const FilteredPokemonList = ({ items, title = 'Pokémon List', colorScheme = 'yellow' }: FilteredPokemonListProps) => {
+export const FilteredPokemonList = ({ items, title = 'Pokémon List', colorScheme = 'yellow', limit }: FilteredPokemonListProps) => {
   const [type, setType] = useState(ALL_TYPES);
 
   const types = useMemo(() => {
@@ -21,9 +22,11 @@ export const FilteredPokemonList = ({ items, title = 'Pokémon List', colorSchem
   }, [items]);
 
   const visible = useMemo(() => {
-    if (type === ALL_TYPES) return items;
-    return items.filter(item => item.types.includes(type.toLowerCase()));
-  }, [items, type]);
+    const filtered = type === ALL_TYPES
+      ? items
+      : items.filter(item => item.types.includes(type.toLowerCase()));
+    return typeof limit === 'number' ? filtered.slice(0, limit) : filtered;
+  }, [items, type, limit]);
 
   const bgColor = colorScheme === 'blue' 
     ? 'linear-gradient(135deg, #E0F7FF 0%, #B3E0FF 100%)'

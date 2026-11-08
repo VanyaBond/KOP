@@ -12,16 +12,21 @@ interface CounterProps {
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
-export const Counter = ({ label, initial, min, max, step = 1, children }: CounterProps) => {
+export const Counter = ({ label, initial, min, max, step = 1, onChange, children }: CounterProps) => {
   const [value, setValue] = useState(initial);
 
-  const shift = (delta: number) => {
-    const newValue = clamp(value + delta, min, max);
-    setValue(newValue);
+  const commit = (next: number) => {
+    const clamped = clamp(next, min, max);
+    setValue(clamped);
+    onChange?.(clamped);
   };
-  
+
+  const shift = (delta: number) => {
+    commit(value + delta);
+  };
+
   const reset = () => {
-    setValue(initial);
+    commit(initial);
   };
 
   return (
@@ -35,7 +40,7 @@ export const Counter = ({ label, initial, min, max, step = 1, children }: Counte
         <button type="button" className="counter__btn" onClick={() => shift(step)} disabled={value >= max}>
           +
         </button>
-        <button type="button" className="counter__btn" onClick={()=> reset()} style={{ fontSize: '12px', width: '60px' }}>
+        <button type="button" className="counter__btn" onClick={() => reset()} style={{ fontSize: '12px', width: '60px' }}>
           Reset
         </button>
       </div>
