@@ -1,20 +1,31 @@
-import { useCallback, useMemo } from 'react';
-import { fetchPokemonById } from '@/api/pokemonApi';
-import { mapPokemonDetailSummary } from '@/lib/mapPokemonMapper';
-import { useFetch } from '@/hooks/useFetch';
-import type { PokemonDto, PokemonDetailsResult } from '@/types';
+import { useCallback, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchPokemonDetailsThunk } from '@/store/slices/detailsSlice';
+import { selectDetailsError, selectDetailsLoading, selectDetailsPokemon } from '@/store/selectors';
+import type { PokemonDetailsResult } from '@/types';
 
-export function usePokemonDetails(id: number | undefined): PokemonDetailsResult {
-  const fetcher = useCallback(
-    async (signal: AbortSignal): Promise<PokemonDto | null> => {
-      if (id === undefined || id === null) return null;
-      return fetchPokemonById(id, signal);
-    },
-    [id]
-  );
+export interface PokemonDetailsHookResult extends PokemonDetailsResult {
+  retry: () => void;
+}
 
-  const { data, loading, error } = useFetch<PokemonDto | null>(fetcher);
-  const pokemon = useMemo(() => (data ? mapPokemonDetailSummary(data) : null), [data]);
+export function usePokemonDetails(id: number | undefined): PokemonDetailsHookResult {
+  const dispatch = useAppDispatch();
+  const pokemon = useAppSelector(selectDetailsPokemon);
+  const loading = useAppSelector(selectDetailsLoading);
+  const error = useAppSelector(selectDetailsError);
 
-  return { pokemon, loading, error };
+  useEffect(() => {
+    if (id === undefined || !Number.isFinite(id)) return;
+    const promise = dispatch(fetchPokemonDetailsThunk(id));
+    return () => {
+      promise.abort();
+    };
+  }, [dispatch, id]);
+
+  const retry = useCallback(() => {
+    if (id === undefined || !Number.isFinite(id)) return;
+    dispatch(fetchPokemonDetailsThunk(id));
+  }, [dispatch, id]);
+
+  return { pokemon, loading, error, retry };
 }

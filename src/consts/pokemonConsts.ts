@@ -1,9 +1,9 @@
-import type { PokemonSummary, SortConfig, SortField } from '@/types/pokemon';
+import type { PokemonFilters, PokemonSummary, SortConfig, SortField } from '@/types/pokemon';
 
 export const API_BASE_URL = 'https://pokeapi.co/api/v2';
-export const POKEMON_LIMIT = 151; 
+export const POKEMON_LIMIT = 151;
 
-export const DEFAULT_COUNTER_VALUE = 3; 
+export const DEFAULT_COUNTER_VALUE = 3;
 
 export const SORT_FIELDS: { id: SortField; label: string; align: 'left' | 'right' }[] = [
   { id: 'name', label: 'Name', align: 'left' },
@@ -58,9 +58,18 @@ export const DEFAULT_SORT: SortConfig = {
 export const FIELD_KEYS: Record<SortField, keyof PokemonSummary> = {
   name: 'name',
   id: 'id',
-  height: 'heightM',       
-  weight: 'weightKg',      
+  height: 'heightM',
+  weight: 'weightKg',
   baseExperience: 'baseExperience',
   hp: 'hp',
   speed: 'speed',
+};
+
+export const DEFAULT_POKEMON_FILTERS: PokemonFilters = {
+  query: '',
+  type: 'all',
+  minHp: 0,
+  limit: 151,
+  page: 1,
+  pageSize: 20,
 };

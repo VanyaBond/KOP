@@ -1,57 +1,75 @@
-import { useState } from 'react';
-import { useForm, useWatch, type Control, type FieldErrors } from 'react-hook-form';
-import { DEFAULT_POKEMON_FILTERS } from '@/lib/filters';
-import type { PokemonFilters } from '@/types/pokemon';
+import { useEffect, useRef } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectFilters } from '@/store/selectors';
+import { setFilters, resetFilters } from '@/store/slices/filtersSlice';
+import { DEFAULT_POKEMON_FILTERS } from '@/consts';
+import type { PokemonFilters } from '@/types';
 
 export interface PokemonFiltersForm {
-  control: Control<PokemonFilters>;
-  errors: FieldErrors<PokemonFilters>;
+  control: ReturnType<typeof useForm<PokemonFilters>>['control'];
+  errors: ReturnType<typeof useForm<PokemonFilters>>['formState']['errors'];
   appliedFilters: PokemonFilters;
   isDirty: boolean;
-  reset: (values?: PokemonFilters) => void;
+  reset: () => void;
 }
-
-interface Snapshot {
-  key: string;
-  filters: PokemonFilters;
-}
-
-const toSnapshot = (filters: PokemonFilters): Snapshot => ({
-  key: JSON.stringify(filters),
-  filters,
-});
 
 export const usePokemonFilters = (): PokemonFiltersForm => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { control, reset: rhfReset, formState, setValue } = useForm<PokemonFilters>({
-    defaultValues: DEFAULT_POKEMON_FILTERS,
+  const dispatch = useAppDispatch();
+  const globalFilters = useAppSelector(selectFilters);
+
+  const {
+    control,
+    reset: formReset,
+    formState: { errors, isDirty },
+  } = useForm<PokemonFilters>({
+    defaultValues: globalFilters,
     mode: 'onChange',
   });
 
-  const values = useWatch({ control }) as PokemonFilters;
-  const { errors, isDirty } = formState;
+  const values = useWatch({ control });
   const hasErrors = Object.keys(errors).length > 0;
+  const prevSerializedRef = useRef<string>('');
 
-  const [snapshot, setSnapshot] = useState<Snapshot>(() => toSnapshot(DEFAULT_POKEMON_FILTERS));
+  useEffect(() => {
+    if (hasErrors || !values) return;
 
-  const valuesKey = JSON.stringify(values);
-  if (!hasErrors && snapshot.key !== valuesKey) {
-    setSnapshot({ key: valuesKey, filters: values });
-  }
+    const next: PokemonFilters = {
+      query: values.query ?? '',
+      type: values.type ?? 'all',
+      minHp: Number(values.minHp ?? 0),
+      limit: Number(values.limit ?? DEFAULT_POKEMON_FILTERS.limit),
+      pageSize: Number(values.pageSize ?? DEFAULT_POKEMON_FILTERS.pageSize),
+      page: globalFilters.page,
+    };
 
-  const reset = (newValues?: PokemonFilters) => {
-    if (newValues) {
-      rhfReset(newValues);
-    } else {
-      rhfReset(DEFAULT_POKEMON_FILTERS);
+    const filtersChanged =
+      next.query !== globalFilters.query ||
+      next.type !== globalFilters.type ||
+      next.minHp !== globalFilters.minHp ||
+      next.limit !== globalFilters.limit ||
+      next.pageSize !== globalFilters.pageSize;
+
+    if (filtersChanged) next.page = 1;
+
+    const serialized = JSON.stringify(next);
+    if (prevSerializedRef.current !== serialized) {
+      prevSerializedRef.current = serialized;
+      dispatch(setFilters(next));
     }
+  }, [values, hasErrors, dispatch, globalFilters]);
+
+  const handleReset = () => {
+    formReset(DEFAULT_POKEMON_FILTERS);
+    prevSerializedRef.current = JSON.stringify(DEFAULT_POKEMON_FILTERS);
+    dispatch(resetFilters());
   };
 
   return {
     control,
     errors,
-    appliedFilters: snapshot.filters,
+    appliedFilters: globalFilters,
     isDirty,
-    reset,
+    reset: handleReset,
   };
 };

@@ -1,14 +1,5 @@
-import { TYPE_COLORS } from '@/consts/pokemonConsts';
+import { DEFAULT_POKEMON_FILTERS, TYPE_COLORS } from '@/consts/pokemonConsts';
 import type { PokemonFilters } from '@/types/pokemon';
-
-export const DEFAULT_POKEMON_FILTERS: PokemonFilters = {
-  query: '',
-  type: 'all',
-  minHp: 0,
-  limit: 151,
-  page: 1,
-  pageSize: 20,
-};
 
 export const TYPE_OPTIONS = ['all', ...Object.keys(TYPE_COLORS)] as const;
 

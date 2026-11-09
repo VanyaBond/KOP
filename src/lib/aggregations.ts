@@ -1,66 +1,86 @@
 import { formatCompact, round } from '@/lib/format';
-import type { PokemonSummary, KpiData } from '@/types/pokemon';
+import { METRIC_UNITS } from '@/consts';
+import type { ChartSeries, KpiData, Metric, PokemonSummary } from '@/types';
 
-const medianOf = (values: readonly number[]): number => {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+export const metricValue = (pokemon: PokemonSummary, metric: Metric): number =>
+  pokemon[metric];
+
+const avgOf = (list: readonly PokemonSummary[], fn: (p: PokemonSummary) => number): number =>
+  list.length ? list.reduce((sum, p) => sum + fn(p), 0) / list.length : 0;
+
+const deltaPercentOf = (pokemons: readonly PokemonSummary[], fn: (p: PokemonSummary) => number): number => {
+  const half = Math.ceil(pokemons.length / 2);
+  const first = avgOf(pokemons.slice(0, half), fn);
+  const second = avgOf(pokemons.slice(half), fn);
+  if (second === 0) return 0;
+  return round(((first - second) / second) * 100);
 };
 
 export const buildKpis = (pokemons: readonly PokemonSummary[]): KpiData[] => {
-  const total = pokemons.length;
-  if (total === 0) return [];
-
-  const totalBaseExp = pokemons.reduce((sum, p) => sum + p.baseExperience, 0);
-  const avgWeight = pokemons.reduce((sum, p) => sum + p.weightKg, 0) / total;
-  const totalHP = pokemons.reduce((sum, p) => sum + p.hp, 0);
-  
-  const avgStats = pokemons.reduce((sum, p) => sum + p.totalStats, 0) / total;
-  const maxStatsPokemon = pokemons.reduce((max, p) => p.totalStats > max.totalStats ? p : max, pokemons[0]);
-  const maxStatsShare = ((maxStatsPokemon.totalStats / avgStats) - 1) * 100;
-  
-  const weights = pokemons.map(p => p.weightKg);
-  const medianWeight = medianOf(weights);
-  const weightSkew = avgWeight > 0 ? ((medianWeight - avgWeight) / avgWeight) * 100 : 0;
-  
-  const typeCounts = new Map<string, number>();
-  pokemons.forEach(p => p.types.forEach(t => typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1)));
-  const [mostCommonType, typeCount] = [...typeCounts.entries()].reduce((a, b) => b[1] > a[1] ? b : a);
-  const typeShare = (typeCount / (pokemons.reduce((sum, p) => sum + p.types.length, 0))) * 100;
+  const count = pokemons.length;
+  const typesCount = new Set(pokemons.flatMap(p => p.types)).size;
 
   return [
     {
-      id: 'tracked',
-      title: '⚡ Pokémon Ready',
-      value: String(total),
-      deltaPercent: round(typeShare),
-      deltaAbsolute: `${mostCommonType}: ${typeCount} types`,
-      hint: 'Most common type share',
+      id: 'count',
+      title: 'Pokémon in selection',
+      value: formatCompact(count),
+      deltaPercent: 0,
+      deltaAbsolute: `${count}`,
+      hint: 'matches current filters',
     },
     {
-      id: 'total_hp',
-      title: '💪 Total HP',
-      value: formatCompact(totalHP),
-      deltaPercent: round(maxStatsShare),
-      deltaAbsolute: `${maxStatsPokemon.name}: ${maxStatsPokemon.totalStats} BST`,
-      hint: 'Highest stats Pokémon',
+      id: 'avg-hp',
+      title: 'Average HP',
+      value: avgOf(pokemons, p => p.hp).toFixed(1),
+      deltaPercent: deltaPercentOf(pokemons, p => p.hp),
+      deltaAbsolute: (avgOf(pokemons.slice(0, Math.ceil(count / 2)), p => p.hp) - avgOf(pokemons.slice(Math.ceil(count / 2)), p => p.hp)).toFixed(1),
+      hint: 'first half vs second half',
     },
     {
-      id: 'avg_weight',
-      title: '️ Avg Weight',
-      value: `${avgWeight.toFixed(1)} kg`,
-      deltaPercent: round(weightSkew),
-      deltaAbsolute: `median ${medianWeight.toFixed(1)} kg`,
-      hint: 'Median vs mean weight',
+      id: 'avg-speed',
+      title: 'Average Speed',
+      value: avgOf(pokemons, p => p.speed).toFixed(1),
+      deltaPercent: deltaPercentOf(pokemons, p => p.speed),
+      deltaAbsolute: (avgOf(pokemons.slice(0, Math.ceil(count / 2)), p => p.speed) - avgOf(pokemons.slice(Math.ceil(count / 2)), p => p.speed)).toFixed(1),
+      hint: 'first half vs second half',
     },
     {
-      id: 'total_exp',
-      title: '⭐ Total EXP',
-      value: formatCompact(totalBaseExp),
-      deltaPercent: round((totalBaseExp / total - 50) / 50 * 100),
-      deltaAbsolute: `${(totalBaseExp / total).toFixed(0)} avg per Pokémon`,
-      hint: 'Combined battle experience',
+      id: 'types',
+      title: 'Unique types',
+      value: String(typesCount),
+      deltaPercent: 0,
+      deltaAbsolute: String(typesCount),
+      hint: 'across current selection',
     },
   ];
+};
+
+export const buildTopSeries = (
+  pokemons: readonly PokemonSummary[],
+  metric: Metric,
+  limit = 8
+): ChartSeries => {
+  const top = [...pokemons]
+    .sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
+    .slice(0, limit);
+
+  return {
+    labels: top.map(p => p.name),
+    values: top.map(p => metricValue(p, metric)),
+    unit: METRIC_UNITS[metric],
+  };
+};
+
+export const buildTypeSeries = (pokemons: readonly PokemonSummary[]): ChartSeries => {
+  const counts = new Map<string, number>();
+  pokemons.forEach(p => p.types.forEach(t => counts.set(t, (counts.get(t) ?? 0) + 1)));
+
+  const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+
+  return {
+    labels: entries.map(([type]) => type),
+    values: entries.map(([, value]) => value),
+    unit: 'Pokémon',
+  };
 };

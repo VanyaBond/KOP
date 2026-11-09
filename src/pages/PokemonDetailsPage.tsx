@@ -3,17 +3,18 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Loader } from '@/components/ui/Loader';
 import { Error } from '@/components/ui/Error';
 import { usePokemonDetails } from '@/hooks/usePokemonDetails';
-import { usePokemon } from '@/context';
 import { ROUTES, TYPE_COLORS } from '@/consts';
+import { FavoriteToggle } from '@/components/ui/FavoriteToggle';
 
 export function PokemonDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const parsedId = id ? parseInt(id, 10) : undefined;
-  
-  const { pokemon, loading, error } = usePokemonDetails(parsedId);
-  const { retry } = usePokemon();
+  const parsedId = id !== undefined && id !== '' ? parseInt(id, 10) : undefined;
+  const isValidId = parsedId !== undefined && Number.isFinite(parsedId);
 
-  if (loading) {
+  const { pokemon, loading, error, retry } = usePokemonDetails(parsedId);
+  const isStale = isValidId && pokemon !== null && pokemon.id !== parsedId;
+
+  if (loading || isStale) {
     return (
       <GlassCard title="Pokémon Details" subtitle="Loading...">
         <Loader />
@@ -29,7 +30,7 @@ export function PokemonDetailsPage() {
     );
   }
 
-  if (!pokemon || !parsedId) {
+  if (!isValidId || !pokemon) {
     return (
       <GlassCard
         title="Pokémon not found"
@@ -45,9 +46,7 @@ export function PokemonDetailsPage() {
             ❓
           </span>
           <p className="not-found__title">We couldn't locate this Pokémon.</p>
-          <p className="not-found__hint">
-            Try going back and picking another row, or check that the URL is correct.
-          </p>
+          <p className="not-found__hint">Try going back and picking another row, or check that the URL is correct.</p>
         </div>
       </GlassCard>
     );
@@ -70,6 +69,7 @@ export function PokemonDetailsPage() {
         <div className="details-title">
           <span className="details-number">#{String(pokemon.id).padStart(3, '0')}</span>
           <span className="details-name">{pokemon.name}</span>
+          <FavoriteToggle pokemon={pokemon} id={pokemon.id} pokemonName={pokemon.name} className="fav-btn--details" />
         </div>
       }
       subtitle={`${pokemon.speciesName} · ${pokemon.types.join(', ')}`}
@@ -122,11 +122,7 @@ export function PokemonDetailsPage() {
           <h3 className="details-section__title">Types</h3>
           <div className="details-chips">
             {pokemon.types.map(type => (
-              <span
-                key={type}
-                className="chip chip--type"
-                style={{ backgroundColor: TYPE_COLORS[type] || '#999' }}
-              >
+              <span key={type} className="chip chip--type" style={{ backgroundColor: TYPE_COLORS[type] || '#999' }}>
                 {type}
               </span>
             ))}
@@ -137,10 +133,7 @@ export function PokemonDetailsPage() {
           <h3 className="details-section__title">Abilities</h3>
           <div className="details-chips">
             {pokemon.abilities.map(ability => (
-              <span
-                key={ability.name}
-                className={`chip ${ability.isHidden ? 'chip--hidden' : ''}`}
-              >
+              <span key={ability.name} className={`chip ${ability.isHidden ? 'chip--hidden' : ''}`}>
                 {ability.name}
                 {ability.isHidden && <span className="chip-badge">Hidden</span>}
               </span>

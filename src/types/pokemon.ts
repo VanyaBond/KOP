@@ -79,3 +79,5 @@ export interface PokemonDetailsResult {
   loading: boolean;
   error: string | null;
 }
+
+export type PokemonFetchParams = Omit<PokemonFilters, 'page' | 'pageSize'>;
